@@ -5,6 +5,7 @@ Configuration file uses ESP Home and an ESP8266 with RS485 chip for communicatio
 
 Other devices supporting ESP Home and RS485 communication should work without significant change to the configuration.
 
+![Screenshot of an example home automation dashboard](Dashboard-Example.png)
 
 ## Sensors Reported into Home Assistant
 
