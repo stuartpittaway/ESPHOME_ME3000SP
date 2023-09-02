@@ -7,17 +7,17 @@ esp8266:
 
 # Enable logging
 logger:
-    level: DEBUG
+    level: WARN
     baud_rate: 0
     hardware_uart: UART1
 
 # Enable Home Assistant API
 api:
   encryption:
-    key: "XXXXXXXX3uE1FFDqzkf1QpSNk8hiLsZDmcqfHBKXXXX="
+    key: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 
 ota:
-  password: "XXXXXXXX13cf98f6ea4852a72cf9XXXX"
+  password: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 
 wifi:
   ssid: !secret wifi_ssid
@@ -25,12 +25,10 @@ wifi:
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: "Sofarme3000Sp Fallback Hotspot"
+    ssid: "SOFAR ME3000 Fallback Hotspot"
     password: "XXXXXXXXXXXX"
 
 captive_portal:
-
-
 uart:
   id: moduart
   tx_pin: GPIO1
@@ -39,13 +37,11 @@ uart:
   stop_bits: 1
   data_bits: 8
   parity: NONE
-
 modbus:
   send_wait_time: 250ms
   uart_id: moduart
   id: modbus1
-  flow_control_pin: GPIO14
-  
+  flow_control_pin: GPIO5
 
 modbus_controller:
   - id: sdm
@@ -54,7 +50,6 @@ modbus_controller:
     command_throttle: 100ms
     setup_priority: -10
     update_interval: 5s
-
 sensor:
   - platform: modbus_controller
     name: "Running State"
@@ -92,43 +87,36 @@ sensor:
               return {"Fault (permanent)"};
             }
             return {"Unknown"};
-
-
   - platform: modbus_controller
     name: "Fault Message 1"
     address: 0x0201
     register_type: "holding"
     value_type: U_WORD      
     icon: "mdi:alert-circle"
-
   - platform: modbus_controller
     name: "Fault Message 2"
     address: 0x0202
     register_type: "holding"
     value_type: U_WORD      
     icon: "mdi:alert-circle"
-
   - platform: modbus_controller
     name: "Fault Message 3"
     address: 0x0203
     register_type: "holding"
     value_type: U_WORD      
     icon: "mdi:alert-circle"
-
   - platform: modbus_controller
     name: "Fault Message 4"
     address: 0x0204
     register_type: "holding"
     value_type: U_WORD      
     icon: "mdi:alert-circle"
-
   - platform: modbus_controller
     name: "Fault Message 5"
     address: 0x0205
     register_type: "holding"
     value_type: U_WORD      
     icon: "mdi:alert-circle"
-
   - platform: modbus_controller
     name: "Grid Voltage"
     address: 0x0206
@@ -140,7 +128,6 @@ sensor:
     state_class: measurement      
     unit_of_measurement: "V"
     accuracy_decimals: 2
-
   - platform: modbus_controller
     name: "Grid Current"
     address: 0x0207
@@ -152,7 +139,6 @@ sensor:
     state_class: measurement      
     unit_of_measurement: "A"
     accuracy_decimals: 2
-
   - platform: modbus_controller
     name: "Grid Frequency"
     address: 0x020c
@@ -164,7 +150,6 @@ sensor:
     state_class: measurement      
     unit_of_measurement: "Hz"
     accuracy_decimals: 2
-
   - platform: modbus_controller
     name: "Battery Power"
     address: 0x020d
@@ -176,7 +161,6 @@ sensor:
     accuracy_decimals: 0
     filters:
       - multiply: 10
-
   - platform: modbus_controller
     name: "Battery Voltage"
     address: 0x020e
@@ -188,7 +172,6 @@ sensor:
     state_class: measurement      
     unit_of_measurement: "V"
     accuracy_decimals: 2
-
   - platform: modbus_controller
     name: "Battery Current"
     address: 0x020f
@@ -201,7 +184,6 @@ sensor:
     unit_of_measurement: "A"
     accuracy_decimals: 2
     icon: "mdi:current-dc"
-
   - platform: modbus_controller
     name: "State of Charge"
     address: 0x0210
@@ -210,8 +192,6 @@ sensor:
     device_class: battery
     state_class: measurement
     unit_of_measurement: "%"
-          
-
   - platform: modbus_controller
     name: "Battery Temperature"
     address: 0x0211
@@ -220,7 +200,6 @@ sensor:
     unit_of_measurement: "°C"
     device_class: temperature
     state_class: measurement
-
   - platform: modbus_controller
     name: "Feed Power"
     address: 0x0212
@@ -232,7 +211,6 @@ sensor:
     accuracy_decimals: 0
     filters:
       - multiply: 10
-
   - platform: modbus_controller
     name: "Load Power"
     address: 0x0213
@@ -244,7 +222,6 @@ sensor:
     accuracy_decimals: 0
     filters:
       - multiply: 10
-
   - platform: modbus_controller
     name: "Input/Output Power"
     address: 0x0214
@@ -256,7 +233,6 @@ sensor:
     accuracy_decimals: 0
     filters:
       - multiply: 10
-
   - platform: modbus_controller
     name: "Generation Power"
     address: 0x0215
@@ -268,7 +244,6 @@ sensor:
     accuracy_decimals: 0
     filters:
       - multiply: 10
-
   - platform: modbus_controller
     name: "EPS Voltage"
     address: 0x0216
@@ -280,7 +255,6 @@ sensor:
     state_class: measurement      
     unit_of_measurement: "V"
     accuracy_decimals: 2
-
   - platform: modbus_controller
     name: "EPS Power"
     address: 0x0217
@@ -292,7 +266,6 @@ sensor:
     accuracy_decimals: 0
     filters:
       - multiply: 10
-
   - platform: modbus_controller
     name: "Energy Export (Day)"
     address: 0x0219
@@ -300,12 +273,11 @@ sensor:
     value_type: U_WORD
     unit_of_measurement: "Wh"
     device_class: energy
-    state_class: measurement
+    state_class: total_increasing
     accuracy_decimals: 0
     filters:
       - multiply: 10
     icon: "mdi:transmission-tower-export"
-
   - platform: modbus_controller
     name: "Energy Import (Day)"
     address: 0x021a
@@ -313,7 +285,7 @@ sensor:
     value_type: U_WORD
     unit_of_measurement: "Wh"
     device_class: energy
-    state_class: measurement
+    state_class: total_increasing
     accuracy_decimals: 0
     filters:
       - multiply: 10
@@ -326,7 +298,7 @@ sensor:
     value_type: U_WORD
     unit_of_measurement: "Wh"
     device_class: energy
-    state_class: measurement
+    state_class: total_increasing
     accuracy_decimals: 0
     filters:
       - multiply: 10
@@ -380,7 +352,7 @@ sensor:
     value_type: U_WORD
     unit_of_measurement: "Wh"
     device_class: energy
-    state_class: measurement
+    state_class: total_increasing
     accuracy_decimals: 0
     filters:
       - multiply: 10
@@ -393,7 +365,7 @@ sensor:
     value_type: U_WORD
     unit_of_measurement: "Wh"
     device_class: energy
-    state_class: measurement
+    state_class: total_increasing
     accuracy_decimals: 0
     filters:
       - multiply: 10
@@ -474,4 +446,3 @@ text_sensor:
   - platform: template
     name: "Inverter Alert Description"
     id: template_text_inverter_alert_description
-
