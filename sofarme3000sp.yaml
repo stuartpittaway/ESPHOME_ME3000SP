@@ -7,17 +7,17 @@ esp8266:
 
 # Enable logging
 logger:
-    level: WARN
+    level: DEBUG
     baud_rate: 0
     hardware_uart: UART1
 
 # Enable Home Assistant API
 api:
   encryption:
-    key: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-
+    key: !secret sofarme3000sp__encryption_key
 ota:
-  password: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+  password: !secret sofarme3000sp__ota_password
+  platform: esphome
 
 wifi:
   ssid: !secret wifi_ssid
@@ -26,7 +26,7 @@ wifi:
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
     ssid: "SOFAR ME3000 Fallback Hotspot"
-    password: "XXXXXXXXXXXX"
+    password: !secret ap_fallback_password
 
 captive_portal:
 uart:
@@ -50,6 +50,7 @@ modbus_controller:
     command_throttle: 100ms
     setup_priority: -10
     update_interval: 5s
+  
 sensor:
   - platform: modbus_controller
     name: "Running State"
@@ -446,3 +447,4 @@ text_sensor:
   - platform: template
     name: "Inverter Alert Description"
     id: template_text_inverter_alert_description
+
