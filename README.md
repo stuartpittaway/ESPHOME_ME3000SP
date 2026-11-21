@@ -7,6 +7,18 @@ Other devices supporting ESP Home and RS485 communication should work without si
 
 ![Screenshot of an example home automation dashboard](Dashboard-Example.png)
 
+## Secrets
+
+The configuration reads its credentials from ESPHome's `secrets.yaml`. Add these entries before validating:
+
+```yaml
+wifi_ssid: "your-wifi-name"
+wifi_password: "your-wifi-password"
+ap_fallback_password: "fallback-hotspot-password"   # at least 8 characters
+sofarme3000sp__encryption_key: "base64-api-key"
+sofarme3000sp__ota_password: "ota-password"
+```
+
 ## Sensors Reported into Home Assistant
 
 The configuration has the correct units, icons and device classes to make integration with energy dashboards easy.
@@ -28,10 +40,11 @@ The configuration has the correct units, icons and device classes to make integr
 * Battery Temperature
 * Feed Power
 * Load Power
-* Input/Output Power
+* Input Output Power
 * Generation Power
 * EPS Voltage
 * EPS Power
+* Energy Generation (Day)
 * Energy Export (Day)
 * Energy Import (Day)
 * Energy Consumption (Day)
