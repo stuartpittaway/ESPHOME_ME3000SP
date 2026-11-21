@@ -54,69 +54,57 @@ modbus_controller:
 sensor:
   - platform: modbus_controller
     name: "Running State"
+    icon: "mdi:state-machine"
     address: 0x0200
     register_type: "holding"
-    value_type: U_WORD      
+    value_type: U_WORD
+    accuracy_decimals: 0
     id: "sofarme3000sp_running_state"
     on_value:
       then:
        - text_sensor.template.publish:
            id: template_text_state_description
            state: !lambda |-
-            if (x==0) {
-              return {"Wait"};
-            } 
-            if (x==1) {
-              return {"Check"};
-            } 
-            if (x==2) {
-              return {"Normal"};
-            } 
-            if (x==3) {
-              return {"Check Discharge"};
-            } 
-            if (x==4) {
-              return {"Discharge"};
-            } 
-            if (x==5) {
-              return {"EPS"};
-            } 
-            if (x==6) {
-              return {"Fault (temporary)"};
-            } 
-            if (x==7) {
-              return {"Fault (permanent)"};
-            }
-            return {"Unknown"};
+            static const char *const STATES[] = {
+              "Wait", "Check", "Normal", "Check Discharge",
+              "Discharge", "EPS", "Fault (temporary)", "Fault (permanent)"};
+            int s = (int) x;
+            if (s >= 0 && s < 8) return STATES[s];
+            return "Unknown (" + std::to_string(s) + ")";
   - platform: modbus_controller
     name: "Fault Message 1"
     address: 0x0201
     register_type: "holding"
-    value_type: U_WORD      
+    value_type: U_WORD
+    accuracy_decimals: 0
     icon: "mdi:alert-circle"
   - platform: modbus_controller
     name: "Fault Message 2"
     address: 0x0202
     register_type: "holding"
-    value_type: U_WORD      
+    value_type: U_WORD
+    accuracy_decimals: 0
     icon: "mdi:alert-circle"
   - platform: modbus_controller
     name: "Fault Message 3"
     address: 0x0203
     register_type: "holding"
-    value_type: U_WORD      
+    value_type: U_WORD
+    accuracy_decimals: 0
     icon: "mdi:alert-circle"
   - platform: modbus_controller
     name: "Fault Message 4"
     address: 0x0204
     register_type: "holding"
-    value_type: U_WORD      
+    value_type: U_WORD
+    accuracy_decimals: 0
     icon: "mdi:alert-circle"
   - platform: modbus_controller
     name: "Fault Message 5"
     address: 0x0205
     register_type: "holding"
-    value_type: U_WORD      
+    value_type: U_WORD
+    accuracy_decimals: 0
     icon: "mdi:alert-circle"
   - platform: modbus_controller
     name: "Grid Voltage"
@@ -126,11 +114,12 @@ sensor:
     filters:
       - multiply: 0.1
     device_class: voltage
-    state_class: measurement      
+    state_class: measurement
     unit_of_measurement: "V"
-    accuracy_decimals: 2
+    accuracy_decimals: 1
   - platform: modbus_controller
     name: "Grid Current"
+    icon: "mdi:current-ac"
     address: 0x0207
     register_type: "holding"
     value_type: S_WORD
@@ -142,6 +131,7 @@ sensor:
     accuracy_decimals: 2
   - platform: modbus_controller
     name: "Grid Frequency"
+    icon: "mdi:sine-wave"
     address: 0x020c
     register_type: "holding"
     value_type: U_WORD
@@ -153,6 +143,7 @@ sensor:
     accuracy_decimals: 2
   - platform: modbus_controller
     name: "Battery Power"
+    icon: "mdi:battery-charging"
     address: 0x020d
     register_type: "holding"
     value_type: S_WORD
@@ -193,16 +184,19 @@ sensor:
     device_class: battery
     state_class: measurement
     unit_of_measurement: "%"
+    accuracy_decimals: 0
   - platform: modbus_controller
     name: "Battery Temperature"
     address: 0x0211
     register_type: "holding"
-    value_type: U_WORD
+    value_type: S_WORD
+    accuracy_decimals: 0
     unit_of_measurement: "°C"
     device_class: temperature
     state_class: measurement
   - platform: modbus_controller
     name: "Feed Power"
+    icon: "mdi:transmission-tower"
     address: 0x0212
     register_type: "holding"
     value_type: S_WORD
@@ -214,6 +208,7 @@ sensor:
       - multiply: 10
   - platform: modbus_controller
     name: "Load Power"
+    icon: "mdi:home-lightning-bolt"
     address: 0x0213
     register_type: "holding"
     value_type: U_WORD
@@ -225,6 +220,7 @@ sensor:
       - multiply: 10
   - platform: modbus_controller
     name: "Input/Output Power"
+    icon: "mdi:swap-vertical"
     address: 0x0214
     register_type: "holding"
     value_type: S_WORD
@@ -236,6 +232,7 @@ sensor:
       - multiply: 10
   - platform: modbus_controller
     name: "Generation Power"
+    icon: "mdi:solar-power"
     address: 0x0215
     register_type: "holding"
     value_type: U_WORD
@@ -247,17 +244,19 @@ sensor:
       - multiply: 10
   - platform: modbus_controller
     name: "EPS Voltage"
+    icon: "mdi:home-battery"
     address: 0x0216
     register_type: "holding"
     value_type: U_WORD
     filters:
       - multiply: 0.1
     device_class: voltage
-    state_class: measurement      
+    state_class: measurement
     unit_of_measurement: "V"
-    accuracy_decimals: 2
+    accuracy_decimals: 1
   - platform: modbus_controller
     name: "EPS Power"
+    icon: "mdi:home-battery"
     address: 0x0217
     register_type: "holding"
     value_type: U_WORD
@@ -267,6 +266,18 @@ sensor:
     accuracy_decimals: 0
     filters:
       - multiply: 10
+  - platform: modbus_controller
+    name: "Energy Generation (Day)"
+    address: 0x0218
+    register_type: "holding"
+    value_type: U_WORD
+    unit_of_measurement: "Wh"
+    device_class: energy
+    state_class: total_increasing
+    accuracy_decimals: 0
+    filters:
+      - multiply: 10
+    icon: "mdi:solar-power"
   - platform: modbus_controller
     name: "Energy Export (Day)"
     address: 0x0219
@@ -294,6 +305,7 @@ sensor:
 
   - platform: modbus_controller
     name: "Energy Consumption (Day)"
+    icon: "mdi:home-lightning-bolt-outline"
     address: 0x021b
     register_type: "holding"
     value_type: U_WORD
@@ -306,6 +318,7 @@ sensor:
 
   - platform: modbus_controller
     name: "Total generation"
+    icon: "mdi:solar-power-variant"
     address: 0x021c
     register_type: "holding"
     value_type: U_DWORD
@@ -338,6 +351,7 @@ sensor:
 
   - platform: modbus_controller
     name: "Total load consumption"
+    icon: "mdi:home-lightning-bolt-outline"
     address: 0x0222
     register_type: "holding"
     value_type: U_DWORD
@@ -378,14 +392,15 @@ sensor:
     register_type: "holding"
     value_type: U_WORD
     state_class: measurement
-    icon: "mdi:numeric"
+    accuracy_decimals: 0
+    icon: "mdi:timer-outline"
 
   - platform: modbus_controller
     name: "Inverter Alert Message"
     address: 0x022b
     register_type: "holding"
     value_type: U_WORD
-    state_class: measurement
+    accuracy_decimals: 0
     icon: "mdi:alert-circle"
     on_value:
       then:
@@ -417,13 +432,15 @@ sensor:
     register_type: "holding"
     value_type: U_WORD
     state_class: total_increasing
-    icon: "mdi:numeric"
+    accuracy_decimals: 0
+    icon: "mdi:battery-sync"
 
   - platform: modbus_controller
     name: "Inverter Temperature"
     address: 0x0238
     register_type: "holding"
-    value_type: U_WORD
+    value_type: S_WORD
+    accuracy_decimals: 0
     unit_of_measurement: "°C"
     device_class: temperature
     state_class: measurement
@@ -432,7 +449,8 @@ sensor:
     name: "Inverter Heat Sink Temperature"
     address: 0x0239
     register_type: "holding"
-    value_type: U_WORD
+    value_type: S_WORD
+    accuracy_decimals: 0
     unit_of_measurement: "°C"
     device_class: temperature
     state_class: measurement
@@ -443,8 +461,10 @@ text_sensor:
   - platform: template
     name: "Running State Description"
     id: template_text_state_description
+    icon: "mdi:information-outline"
 
   - platform: template
     name: "Inverter Alert Description"
     id: template_text_inverter_alert_description
+    icon: "mdi:alert"
 
