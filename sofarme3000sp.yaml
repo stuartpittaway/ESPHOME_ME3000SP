@@ -39,6 +39,7 @@ uart:
   parity: NONE
 modbus:
   send_wait_time: 250ms
+  turnaround_time: 100ms
   uart_id: moduart
   id: modbus1
   flow_control_pin: GPIO5
@@ -47,7 +48,6 @@ modbus_controller:
   - id: sdm
     address: 1
     modbus_id: modbus1
-    command_throttle: 100ms
     setup_priority: -10
     update_interval: 5s
   
@@ -219,7 +219,7 @@ sensor:
     filters:
       - multiply: 10
   - platform: modbus_controller
-    name: "Input/Output Power"
+    name: "Input Output Power"
     icon: "mdi:swap-vertical"
     address: 0x0214
     register_type: "holding"
