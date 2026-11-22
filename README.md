@@ -3,6 +3,11 @@ Home Assistant (ESP Home) configuration for communication with SOFAR ME3000SP in
 
 Configuration file uses ESP Home and an ESP8266 with RS485 chip for communication with SOFAR ME3000SP inverter (for battery storage).
 
+The interface works in both directions:
+
+* **Monitoring:** reads the inverter's live data (battery, grid, load, generation, daily and lifetime energy, temperatures, faults) into Home Assistant, ready for the energy dashboard.
+* **Control:** force the battery to charge or discharge at a set power, hold it in standby, or return it to automatic self-consumption, from Home Assistant or its automations. See [Controlling charge and discharge](#controlling-charge-and-discharge).
+
 Other devices supporting ESP Home and RS485 communication should work without significant change to the configuration.
 
 ![Screenshot of an example home automation dashboard](Dashboard-Example.png)
