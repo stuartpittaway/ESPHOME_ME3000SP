@@ -23,11 +23,25 @@ That is the path seen from the File editor, Studio Code Server, SSH or Samba add
 
 ## Multiple inverters
 
-Several inverters can share the same RS485 bus, as long as each one has a different RS485 address. Set the address on each inverter (Settings > 5. Set Communication Addr.; the current address is shown under System Information), then uncomment the `inverter2` block in `sofarme3000sp.yaml` and set `modbus_address` to match.
+Several inverters can share the same RS485 bus, as long as each one has a different RS485 address. To add a second inverter:
 
-The first inverter uses an empty `name_prefix`, so its entities keep their original names and history. Additional inverters get a prefix such as `"Inverter 2 "`.
+1. **Set a unique address on the new inverter.** On the inverter, go to Settings > 5. Set Communication Addr. and choose an address no other inverter uses, for example `2`. The current address is shown under System Information > RS485 Address.
+2. **Wire it into the bus.** Connect the inverters as a daisy chain (ESP RS485 module → inverter 1 → inverter 2), with a 120 Ω terminating resistor at each end of the chain. Keep any branches off the main line short.
+3. **Enable it in the config.** In `sofarme3000sp.yaml`, uncomment the `inverter2` block and set `modbus_address` to the address from step 1:
 
-Wire the bus as a daisy chain with a 120 Ω terminating resistor at each end.
+   ```yaml
+     inverter2: !include
+       file: packages/sofar_me3000sp.yaml
+       vars:
+         name_prefix: "Inverter 2 "
+         id_prefix: inverter2
+         modbus_address: 2
+   ```
+
+4. **For a third inverter or more**, copy the block as `inverter3`, with its own `id_prefix` (`inverter3`), `name_prefix` (`"Inverter 3 "`) and address.
+5. **Validate and install** in ESPHome Device Builder. In Home Assistant, check that the new "Inverter 2 …" entities appear and that the first inverter's entities are unchanged.
+
+The first inverter uses an empty `name_prefix`, so its entities keep their original names and history. Don't add a prefix to it later, or Home Assistant will create new entities and the old ones will lose their history.
 
 ## Secrets
 
