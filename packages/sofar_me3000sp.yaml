@@ -467,3 +467,173 @@ text_sensor:
     id: ${id_prefix}_alert_description
     icon: "mdi:alert"
 
+  - platform: template
+    name: "${name_prefix}Battery Command Result"
+    id: ${id_prefix}_command_result
+    icon: "mdi:message-reply-text"
+
+# ---------------------------------------------------------------------------
+# Charge / discharge control (SOFAR "passive mode")
+#
+# The inverter must be switched to Passive Mode on its own menu first:
+#   Settings > 12. Work Mode Set > 4. Set Passive Mode
+# Otherwise every command is rejected with "Invalid work mode".
+#
+# Commands use SOFAR's custom function code 0x42, as in the Sofar2mqtt
+# project (https://github.com/cmcgerty/Sofar2mqtt):
+#   0x0100 Standby (parameter 0x5555)
+#   0x0101 Discharge (parameter = watts)
+#   0x0102 Charge (parameter = watts)
+#   0x0103 Auto (the inverter's normal self-consumption behaviour)
+# ---------------------------------------------------------------------------
+
+select:
+  - platform: template
+    name: "${name_prefix}Battery Mode"
+    id: ${id_prefix}_battery_mode
+    icon: "mdi:tune-variant"
+    options:
+      - "Auto"
+      - "Charge"
+      - "Discharge"
+      - "Standby"
+    initial_option: "Auto"
+    optimistic: true
+    restore_value: true
+    set_action:
+      - script.execute:
+          id: ${id_prefix}_passive_command
+          battery_mode: !lambda "return x;"
+          power: !lambda |-
+            if (x == "Charge") return (int) id(${id_prefix}_charge_power).state;
+            if (x == "Discharge") return (int) id(${id_prefix}_discharge_power).state;
+            return 0;
+
+number:
+  - platform: template
+    name: "${name_prefix}Charge Power"
+    id: ${id_prefix}_charge_power
+    icon: "mdi:battery-plus"
+    unit_of_measurement: "W"
+    device_class: power
+    min_value: 100
+    max_value: 3000  # ME3000SP maximum
+    step: 100
+    initial_value: 3000
+    optimistic: true
+    restore_value: true
+    set_action:
+      # Re-send only if the battery is currently being told to charge
+      - if:
+          condition:
+            lambda: 'return std::string(id(${id_prefix}_battery_mode).current_option().c_str()) == "Charge";'
+          then:
+            - script.execute:
+                id: ${id_prefix}_passive_command
+                battery_mode: "Charge"
+                power: !lambda "return (int) x;"
+
+  - platform: template
+    name: "${name_prefix}Discharge Power"
+    id: ${id_prefix}_discharge_power
+    icon: "mdi:battery-minus"
+    unit_of_measurement: "W"
+    device_class: power
+    min_value: 100
+    max_value: 3000  # ME3000SP maximum
+    step: 100
+    initial_value: 3000
+    optimistic: true
+    restore_value: true
+    set_action:
+      # Re-send only if the battery is currently being told to discharge
+      - if:
+          condition:
+            lambda: 'return std::string(id(${id_prefix}_battery_mode).current_option().c_str()) == "Discharge";'
+          then:
+            - script.execute:
+                id: ${id_prefix}_passive_command
+                battery_mode: "Discharge"
+                power: !lambda "return (int) x;"
+
+script:
+  - id: ${id_prefix}_passive_command
+    mode: queued
+    parameters:
+      battery_mode: string
+      power: int
+    then:
+      - logger.log:
+          format: "Sending passive command: %s %d W"
+          args: ["battery_mode.c_str()", "power"]
+      - modbus_client.send:
+          address: ${modbus_address}
+          pdu: !lambda |-
+            uint16_t cmd = 0x0103, param = 0;           // Auto
+            if (battery_mode == "Standby") { cmd = 0x0100; param = 0x5555; }
+            else if (battery_mode == "Discharge") { cmd = 0x0101; param = power; }
+            else if (battery_mode == "Charge") { cmd = 0x0102; param = power; }
+            return {0x42, (uint8_t) (cmd >> 8), (uint8_t) (cmd & 0xFF),
+                    (uint8_t) (param >> 8), (uint8_t) (param & 0xFF)};
+          on_response:
+            - lambda: |-
+                // As in Sofar2mqtt: the last two bytes are the status bits
+                // (high byte) and the result code (low byte).
+                std::string hex;
+                for (uint8_t b : response) {
+                  char buf[4];
+                  snprintf(buf, sizeof(buf), "%02X ", b);
+                  hex += buf;
+                }
+                ESP_LOGI("sofar", "Passive command reply: %s", hex.c_str());
+                if (response.size() < 3) {
+                  id(${id_prefix}_command_result).publish_state("Unexpected reply: " + hex);
+                  return;
+                }
+                uint8_t status = response[response.size() - 2];
+                uint8_t result = response[response.size() - 1];
+                std::string msg;
+                switch (result) {
+                  case 0: msg = "OK"; break;
+                  case 1: msg = "Invalid work mode (is the inverter in Passive Mode?)"; break;
+                  case 3: msg = "Inverter busy"; break;
+                  default: msg = "Error " + std::to_string(result); break;
+                }
+                if (status & 0x01) msg += ", charge enabled";
+                if (status & 0x02) msg += ", discharge enabled";
+                if (status & 0x04) msg += ", battery full";
+                if (status & 0x08) msg += ", battery empty";
+                id(${id_prefix}_command_result).publish_state(msg);
+          on_error:
+            - lambda: |-
+                id(${id_prefix}_command_result).publish_state(
+                    "Rejected by inverter (exception " + std::to_string((int) exception_code) + ")");
+          on_no_response:
+            then:
+              - text_sensor.template.publish:
+                  id: ${id_prefix}_command_result
+                  state: "No response from inverter"
+
+# Sofar2mqtt sends this heartbeat to keep the inverter awake while it is
+# being controlled. Its exact purpose is undocumented, so it is copied as-is.
+interval:
+  - interval: 9s
+    then:
+      - modbus_client.send:
+          address: ${modbus_address}
+          pdu: [0x49, 0x22, 0x01, 0x22, 0x02]
+
+# After a reboot, re-send the last selected mode (Auto on first boot).
+esphome:
+  on_boot:
+    - priority: -100
+      then:
+        - delay: 15s
+        - script.execute:
+            id: ${id_prefix}_passive_command
+            battery_mode: !lambda "return std::string(id(${id_prefix}_battery_mode).current_option().c_str());"
+            power: !lambda |-
+              std::string m(id(${id_prefix}_battery_mode).current_option().c_str());
+              if (m == "Charge") return (int) id(${id_prefix}_charge_power).state;
+              if (m == "Discharge") return (int) id(${id_prefix}_discharge_power).state;
+              return 0;

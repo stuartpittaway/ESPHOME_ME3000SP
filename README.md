@@ -7,6 +7,64 @@ Other devices supporting ESP Home and RS485 communication should work without si
 
 ![Screenshot of an example home automation dashboard](Dashboard-Example.png)
 
+## Hardware
+
+This configuration was built and tested on deliberately old, cheap hardware:
+
+* **ESP8266 NodeMCU** development board
+* **MAX3485 RS485 transceiver**, powered from the NodeMCU's **3.3 V** pin
+
+**The RS485 module must run at 3.3 V.** The ESP8266's pins are 3.3 V only. Many RS485 modules are built around the 5 V MAX485 chip, and powering one from 5 V puts 5 V on the ESP8266's RX pin, which can damage it. Use a 3.3 V transceiver such as the MAX3485 (or a module that states it works at 3.3 V), and power it from the 3.3 V pin, not 5 V or VIN.
+
+Wiring, matching the `uart` and `modbus` sections of `sofarme3000sp.yaml`:
+
+| MAX3485 | NodeMCU | Notes |
+|---|---|---|
+| VCC | 3V3 | **Not** 5 V / VIN |
+| GND | GND | |
+| DI (driver input) | TX (GPIO1) | |
+| RO (receiver output) | RX (GPIO3) | |
+| DE and RE (joined) | D1 (GPIO5) | Flow control: switches the transceiver between sending and receiving |
+| A / B | Inverter RS485 terminal | If nothing is received, try swapping A and B |
+
+The RS485 link uses the ESP8266's main hardware serial port (GPIO1/GPIO3), which is also connected to the board's USB serial chip. That's why logging is moved to UART1 (`hardware_uart: UART1`, `baud_rate: 0`) in the config. Disconnect the transceiver if you ever need to flash the board over USB; after that, updates go over WiFi.
+
+Other ESPHome boards with a 3.3 V RS485 transceiver should work with only the pin numbers changed.
+
+## Controlling charge and discharge
+
+The configuration can tell the inverter when to charge and discharge, using SOFAR's "passive mode" commands (the same commands as the [Sofar2mqtt](https://github.com/cmcgerty/Sofar2mqtt) project).
+
+This is optional. All the sensors work whatever mode the inverter is in; you only need Passive Mode if you want Home Assistant to control charging and discharging.
+
+### Switch the inverter to Passive Mode
+
+The inverter only accepts remote charge and discharge commands in Passive Mode. Until you switch it over, every command is rejected and Battery Command Result shows `Invalid work mode (is the inverter in Passive Mode?)`.
+
+On the inverter's own display:
+
+1. Open **Settings** and select **12. Work Mode Set**.
+2. Select **4. Set Passive Mode** and press **OK**.
+
+In Passive Mode the inverter only does what it's told, and stops managing the battery on its own. Set **Battery Mode** to **Auto** in Home Assistant to get its normal self-consumption behaviour (charge from surplus solar, discharge to cover the house load) while still allowing remote control.
+
+To stop using remote control, go back to **12. Work Mode Set** and select **1. Set Auto Mode**. The inverter then manages the battery itself again, and ignores the controls in Home Assistant.
+
+### Controls in Home Assistant
+
+Home Assistant gets these entities:
+
+| Entity | What it does |
+|---|---|
+| Battery Mode | **Auto** (normal self-consumption), **Charge**, **Discharge** or **Standby** (neither charge nor discharge) |
+| Charge Power | Charge rate in watts (100–3000 W) used when Battery Mode is Charge |
+| Discharge Power | Discharge rate in watts (100–3000 W) used when Battery Mode is Discharge |
+| Battery Command Result | The inverter's reply to the last command, for example `OK, charge enabled` or `Invalid work mode (is the inverter in Passive Mode?)` |
+
+Changing a power level while that mode is active re-sends the command straight away. The selected mode and power levels are remembered, and re-sent about 15 seconds after the ESP restarts.
+
+To charge overnight on a cheap tariff, for example, use a Home Assistant automation that sets Battery Mode to Charge at the start of the cheap period and back to Auto at the end.
+
 ## Files
 
 * `sofarme3000sp.yaml`: the device config (board, WiFi, API, UART and Modbus bus)

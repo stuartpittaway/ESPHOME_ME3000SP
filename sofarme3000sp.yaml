@@ -40,7 +40,9 @@ uart:
   data_bits: 8
   parity: NONE
 modbus:
-  send_wait_time: 250ms
+  # The inverter takes over 300 ms to answer the passive-mode heartbeat,
+  # so wait up to 500 ms for a reply (normal register reads answer sooner).
+  send_wait_time: 500ms
   turnaround_time: 100ms
   uart_id: moduart
   id: modbus1
