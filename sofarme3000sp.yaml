@@ -15,9 +15,11 @@ logger:
 api:
   encryption:
     key: !secret sofarme3000sp__encryption_key
+
+# OTA updates are encrypted with the API encryption key above.
 ota:
-  password: !secret sofarme3000sp__ota_password
-  platform: esphome
+  - platform: esphome
+    encryption:
 
 wifi:
   ssid: !secret wifi_ssid

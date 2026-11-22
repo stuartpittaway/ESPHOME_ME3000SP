@@ -52,8 +52,9 @@ wifi_ssid: "your-wifi-name"
 wifi_password: "your-wifi-password"
 ap_fallback_password: "fallback-hotspot-password"   # at least 8 characters
 sofarme3000sp__encryption_key: "base64-api-key"
-sofarme3000sp__ota_password: "ota-password"
 ```
+
+The API encryption key is also used to encrypt OTA updates, so no separate OTA password is needed. Generate a key with `openssl rand -base64 32`.
 
 ## Sensors Reported into Home Assistant
 
