@@ -70,6 +70,90 @@ Changing a power level while that mode is active re-sends the command straight a
 
 To charge overnight on a cheap tariff, for example, use a Home Assistant automation that sets Battery Mode to Charge at the start of the cheap period and back to Auto at the end.
 
+### Example: charging on Intelligent Octopus
+
+This automation uses the [Octopus Energy integration](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy). It charges the battery when either of these is true:
+
+* the tariff is in its off-peak period, or
+* Octopus has given you a cheap slot **and** the car is actually charging (drawing more than 1000 W).
+
+At any other time, it puts the battery back in Auto.
+
+```yaml
+alias: Charge home battery during off-peak
+description: >
+  Force-charge the SOFAR battery during off-peak, or during an Intelligent
+  Octopus slot while the car is actually charging
+mode: restart
+triggers:
+  - trigger: state
+    entity_id:
+      - binary_sensor.octopus_energy_electricity_<meter_serial>_<mpan>_off_peak
+      - binary_sensor.octopus_intelligent_slot
+    to: ["on", "off"]
+  - trigger: numeric_state
+    entity_id: sensor.power_evse
+    above: 1000
+  - trigger: numeric_state
+    entity_id: sensor.power_evse
+    below: 1000
+    for: "00:02:00"
+  - trigger: homeassistant
+    event: start
+actions:
+  - choose:
+      - conditions:
+          - condition: or
+            conditions:
+              - condition: state
+                entity_id: binary_sensor.octopus_energy_electricity_<meter_serial>_<mpan>_off_peak
+                state: "on"
+              - condition: and
+                conditions:
+                  - condition: state
+                    entity_id: binary_sensor.octopus_intelligent_slot
+                    state: "on"
+                  - condition: numeric_state
+                    entity_id: sensor.power_evse
+                    above: 1000
+        sequence:
+          - action: number.set_value
+            target:
+              entity_id: number.sofarme3000sp_charge_power
+            data:
+              value: 3000
+          - action: select.select_option
+            target:
+              entity_id: select.sofarme3000sp_battery_mode
+            data:
+              option: Charge
+    default:
+      - action: select.select_option
+        target:
+          entity_id: select.sofarme3000sp_battery_mode
+        data:
+          option: Auto
+```
+
+Before you use it, replace these entity IDs with your own (find them under Settings > Devices & services > Entities):
+
+| Entity in the example | Replace with |
+|---|---|
+| `binary_sensor.octopus_energy_electricity_<meter_serial>_<mpan>_off_peak` | Your electricity meter's **Off Peak** binary sensor (search for "off peak") |
+| `binary_sensor.octopus_intelligent_slot` | A binary sensor that is on during an Intelligent Octopus cheap slot |
+| `sensor.power_evse` | Your car charger's power sensor, in watts. If it reports kW, change `1000` to `1` |
+| `number.sofarme3000sp_charge_power`, `select.sofarme3000sp_battery_mode` | Only needed if you renamed the ESPHome device |
+
+How it works:
+
+* Any one trigger runs the automation: either Octopus sensor turning on or off, the car's power crossing 1000 W, or Home Assistant starting. The conditions then check the current state of all three entities and choose Charge or Auto, whichever trigger fired.
+* The car-power triggers fire only when 1000 W is crossed, not on every reading, so the inverter isn't sent a command every few seconds. The "below" trigger waits 2 minutes, so a brief dip while the car is charging doesn't switch the battery back to Auto.
+* If the car's power sensor is unavailable, the slot condition fails, so the battery doesn't charge on a slot alone.
+* Charging at 3000 W stops by itself when the battery is full. Battery Command Result then shows `battery full`.
+* The automation overrides any mode you set by hand the next time one of its triggers fires.
+
+Octopus only bills a slot outside the normal off-peak hours at the cheap rate if the car actually charges during it. That's why the example checks the car's power, not just the slot sensor. Check your first few bills to confirm.
+
 ## Files
 
 * `sofarme3000sp.yaml`: the device config (board, WiFi, API, UART and Modbus bus)
